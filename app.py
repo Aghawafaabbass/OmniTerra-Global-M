@@ -56,6 +56,8 @@ st.markdown("""
 
 st.markdown('<div class="main-title">🌍 OmniTerra: Global Yield Intelligence</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Multi-Modal Spatio-Temporal Transformer Framework</div>', unsafe_allow_html=True)
+
+# Fixed Sidebar Branding
 st.sidebar.image("https://icons8.com")
 st.sidebar.title("System Control")
 st.sidebar.info("Developed by **ML Scientist Agha Wafa Abbas**")
@@ -111,8 +113,8 @@ with col1:
 
 with col2:
     st.subheader("🗺️ Spatial Analysis View")
-    # Folium Map Integration
-    m = folium.Map(location=[lat, lon], zoom_start=14, tiles="Stamen Terrain")
+    # Fixed Folium Map: Changed "Stamen Terrain" to "OpenStreetMap"
+    m = folium.Map(location=[lat, lon], zoom_start=14, tiles="OpenStreetMap")
     folium.Marker([lat, lon], popup="Analysis Site", icon=folium.Icon(color='green', icon='leaf')).add_to(m)
     folium.Circle([lat, lon], radius=500, color='green', fill=True, fill_opacity=0.2).add_to(m)
     folium_static(m)
