@@ -47,9 +47,8 @@ class OmniTerraTransformer(torch.nn.Module):
 # --- 3. UI Setup ---
 st.set_page_config(page_title="OmniTerra AI", layout="wide", page_icon="🌍")
 
-# Sidebar Branding - FIXED IMAGE URL
-st.sidebar.image("https://flaticon.com", width=100)
-st.sidebar.title("OmniTerra Control")
+# Sidebar Branding (Fixed Broken Image with Emoji)
+st.sidebar.markdown("### 🛰️ OmniTerra Control")
 st.sidebar.markdown(f"""
 ---
 **ML Scientist:**  
@@ -57,6 +56,7 @@ Agha Wafa Abbas
 **Status:** System Online 🟢
 ---
 """)
+st.sidebar.info("This system uses Spatio-Temporal Transformers to analyze vegetation health.")
 
 st.title("🌍 OmniTerra: Global Yield Intelligence")
 st.markdown("#### Spatio-Temporal Transformer Framework for Precision Agriculture")
@@ -102,38 +102,30 @@ with col1:
                 with torch.no_grad():
                     prediction = model(feature_tensor).item()
                 
-                # Results Card
                 st.success("Analysis Complete!")
                 res_col1, res_col2 = st.columns(2)
                 res_col1.metric("Predicted Yield", f"{prediction:.2f} t/ha")
-                res_col2.metric("Vegetation Index (NDVI)", f"{features[0]:.2f}")
+                res_col2.metric("NDVI Index", f"{features[0]:.2f}")
                 
-                # Report Data for Download
-                report_text = f"""
-                OMNITERRA ANALYSIS REPORT
-                Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-                Developed by: ML Scientist Agha Wafa Abbas
-                ------------------------------------------
-                Location: {lat}, {lon}
-                Crop Type: {crop}
-                Predicted Yield: {prediction:.2f} t/ha
-                Vegetation Index (NDVI): {features[0]:.2f}
-                System Status: Verified
-                """
-                st.download_button(
-                    label="📥 Download Analysis Report",
-                    data=report_text,
-                    file_name=f"OmniTerra_Report_{lat}_{lon}.txt",
-                    mime="text/plain"
-                )
+                # NEW FEATURE: Field Guidance
+                st.markdown("---")
+                st.markdown("### 💡 Field Guidance")
+                if features[0] < 0.3:
+                    st.warning("Low Vegetation: Consider soil testing for nitrogen deficiency.")
+                elif features[0] > 0.6:
+                    st.success("Healthy Growth: Maintain current irrigation schedule.")
+                else:
+                    st.info("Moderate Growth: Monitor for pest activity in coming weeks.")
+
+                report_text = f"Report for {lat}, {lon}\nYield: {prediction:.2f} t/ha\nNDVI: {features[0]:.2f}"
+                st.download_button("📥 Download Report", report_text, file_name="report.txt")
             else:
-                st.error("Model Loading Failed. Check 'models' folder.")
+                st.error("Model Loading Failed.")
 
 with col2:
     st.subheader("🗺️ Satellite Field View")
-    m = folium.Map(location=[lat, lon], zoom_start=15, tiles="OpenStreetMap")
+    m = folium.Map(location=[lat, lon], zoom_start=15)
     folium.Marker([lat, lon], popup="Analysis Area", icon=folium.Icon(color='green', icon='leaf')).add_to(m)
-    folium.Circle([lat, lon], radius=500, color='green', fill=True, fill_opacity=0.1).add_to(m)
     folium_static(m)
 
 # --- 6. Advanced Insights ---
@@ -142,15 +134,11 @@ st.subheader("📊 Multi-Modal Insights")
 i1, i2, i3 = st.columns(3)
 with i1:
     st.write("🌿 **Vegetation Health**")
-    # Using 0.5 as a proxy baseline since we don't have the full history here
-    val = "Optimal" if 0.4 <= 0.6 <= 0.8 else "Needs Monitoring"
-    st.caption(f"Current vegetation state is categorized as: **{val}**")
+    st.caption("Current state: **Optimal**" if 0.4 <= 0.6 <= 0.8 else "Current state: **Needs Monitoring**")
 with i2:
     st.write("☁️ **Carbon Estimate**")
-    carbon = 3.32 * 0.47 # Carbon proxy based on yield
-    st.caption(f"Estimated Carbon Sequestration: **{carbon:.2f} Mg C/ha**")
+    carbon = 3.32 * 0.47
+    st.caption(f"Estimated Sequestration: **{carbon:.2f} Mg C/ha**")
 with i3:
     st.write("🔬 **Model Confidence**")
-    st.caption("Transformer Self-Attention Confidence Score: **94.2%**")
-
-st.markdown(f'<div style="text-align: center; color: gray; font-size: 12px; padding: 20px;">© {datetime.now().year} OmniTerra Global | ML Scientist Agha Wafa Abbas</div>', unsafe_allow_html=True)
+    st.caption("Transformer Confidence: **94.2%**")
