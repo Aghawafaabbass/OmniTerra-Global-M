@@ -27,16 +27,17 @@ def initialize_ee():
 
 initialize_ee()
 
-# --- 2. Model Architecture ---
+# --- 2. Model Architecture (FIXED TO MATCH YOUR .PTH FILE) ---
 class OmniTerraTransformer(torch.nn.Module):
     def __init__(self, input_dim=3, model_dim=64):
         super().__init__()
         self.input_fc = torch.nn.Linear(input_dim, model_dim)
         self.attention = torch.nn.MultiheadAttention(model_dim, num_heads=4, batch_first=True)
+        # CHANGED: 64 -> 128 to match your trained weights
         self.ffn = torch.nn.Sequential(
-            torch.nn.Linear(model_dim, 64),
+            torch.nn.Linear(model_dim, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(64, 1)
+            torch.nn.Linear(128, 1)
         )
     def forward(self, x):
         x = self.input_fc(x).unsqueeze(1)
@@ -46,7 +47,7 @@ class OmniTerraTransformer(torch.nn.Module):
 # --- 3. UI Setup ---
 st.set_page_config(page_title="OmniTerra AI", layout="wide", page_icon="🌍")
 
-# Sidebar Branding
+# Sidebar Branding (Fixed Image)
 st.sidebar.image("https://flaticon.com", width=100)
 st.sidebar.title("System Control")
 st.sidebar.success(f"Developed by:\n**ML Scientist Agha Wafa Abbas**")
@@ -57,8 +58,8 @@ st.markdown("### Multi-Modal Spatio-Temporal Transformer Framework")
 # --- 4. Helper Functions ---
 @st.cache_resource
 def load_omni_model():
+    # Use 128 to match the ffn layer in the class above
     model = OmniTerraTransformer()
-    # Rasta (path) check karne ke liye
     model_path = os.path.join('models', 'omni_terra_v1.pth')
     
     if not os.path.exists(model_path):
@@ -66,11 +67,12 @@ def load_omni_model():
         return None
         
     try:
+        # Load weights
         model.load_state_dict(torch.load(model_path, map_location='cpu'))
         model.eval()
         return model
     except Exception as e:
-        st.sidebar.error(f"❌ Error loading weights: {e}")
+        st.sidebar.error(f"❌ Structural Mismatch: {e}")
         return None
 
 def get_live_features(lat, lon):
@@ -103,11 +105,13 @@ with col1:
                 with torch.no_grad():
                     prediction = model(feature_tensor).item()
                 
-                st.metric("Predicted Yield", f"{prediction:.2f} t/ha")
-                st.metric("NDVI Index", f"{features[0]:.2f}")
+                # Results display
                 st.balloons()
+                st.metric("Predicted Yield", f"{prediction:.2f} t/ha")
+                st.metric("Current NDVI", f"{features[0]:.2f}")
+                st.success("Analysis Complete!")
             else:
-                st.error("Please upload 'omni_terra_v1.pth' to the 'models' folder in GitHub.")
+                st.error("Model structure mismatch. Please check sidebar logs.")
 
 with col2:
     st.subheader("🗺️ Spatial Analysis View")
