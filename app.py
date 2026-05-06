@@ -5,6 +5,7 @@ import numpy as np
 import json
 from streamlit_folium import folium_static
 import folium
+import os
 
 # --- 1. Earth Engine Initialization ---
 def initialize_ee():
@@ -42,35 +43,35 @@ class OmniTerraTransformer(torch.nn.Module):
         out, _ = self.attention(x, x, x)
         return self.ffn(out.squeeze(1))
 
-# --- 3. Professional UI Setup ---
+# --- 3. UI Setup ---
 st.set_page_config(page_title="OmniTerra AI", layout="wide", page_icon="🌍")
 
-# Custom CSS for Branding
-st.markdown("""
-    <style>
-    .main-title { font-size: 45px; font-weight: bold; color: #2E7D32; }
-    .subtitle { font-size: 18px; color: #558B2F; margin-bottom: 20px; }
-    .footer { position: fixed; bottom: 10px; width: 100%; text-align: center; color: gray; font-size: 12px; }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.markdown('<div class="main-title">🌍 OmniTerra: Global Yield Intelligence</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Multi-Modal Spatio-Temporal Transformer Framework</div>', unsafe_allow_html=True)
-
-# Fixed Sidebar Branding
-st.sidebar.image("https://icons8.com")
+# Sidebar Branding
+st.sidebar.image("https://flaticon.com", width=100)
 st.sidebar.title("System Control")
-st.sidebar.info("Developed by **ML Scientist Agha Wafa Abbas**")
+st.sidebar.success(f"Developed by:\n**ML Scientist Agha Wafa Abbas**")
+
+st.title("🌍 OmniTerra: Global Yield Intelligence")
+st.markdown("### Multi-Modal Spatio-Temporal Transformer Framework")
 
 # --- 4. Helper Functions ---
 @st.cache_resource
 def load_omni_model():
     model = OmniTerraTransformer()
+    # Rasta (path) check karne ke liye
+    model_path = os.path.join('models', 'omni_terra_v1.pth')
+    
+    if not os.path.exists(model_path):
+        st.sidebar.error(f"❌ Model not found at: {model_path}")
+        return None
+        
     try:
-        model.load_state_dict(torch.load('models/omni_terra_v1.pth', map_location='cpu'))
+        model.load_state_dict(torch.load(model_path, map_location='cpu'))
         model.eval()
         return model
-    except: return None
+    except Exception as e:
+        st.sidebar.error(f"❌ Error loading weights: {e}")
+        return None
 
 def get_live_features(lat, lon):
     try:
@@ -78,9 +79,10 @@ def get_live_features(lat, lon):
         img = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterBounds(point).median()
         ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
         stats = ndvi.reduceRegion(reducer=ee.Reducer.mean(), geometry=point.buffer(500), scale=10).getInfo()
-        ndvi_val = stats.get('NDVI', 0.5)
+        ndvi_val = stats.get('NDVI', 0.5) if stats else 0.5
         return [ndvi_val, 290.0, 0.02]
-    except: return [0.5, 290.0, 0.02]
+    except:
+        return [0.5, 290.0, 0.02]
 
 # --- 5. Main Layout ---
 col1, col2 = st.columns([1, 1.5])
@@ -89,45 +91,26 @@ with col1:
     st.subheader("📍 Target Parameters")
     lat = st.number_input("Latitude", value=31.5204, format="%.4f")
     lon = st.number_input("Longitude", value=74.3587, format="%.4f")
-    crop_type = st.selectbox("Crop Type", ["Wheat", "Rice", "Maize", "Soybean"])
+    crop = st.selectbox("Crop Type", ["Wheat", "Rice", "Maize"])
     
     if st.button("🚀 Run Live Inference"):
-        with st.spinner("Analyzing Spatio-Temporal Patterns..."):
-            features = get_live_features(lat, lon)
-            feature_tensor = torch.tensor([features], dtype=torch.float32)
+        with st.spinner("Processing Transformer Layers..."):
             model = load_omni_model()
-            
             if model:
+                features = get_live_features(lat, lon)
+                feature_tensor = torch.tensor([features], dtype=torch.float32)
+                
                 with torch.no_grad():
                     prediction = model(feature_tensor).item()
                 
-                # Metrics Row
-                m1, m2 = st.columns(2)
-                m1.metric("Predicted Yield", f"{prediction:.2f} t/ha", delta="High Accuracy")
-                m2.metric("NDVI Index", f"{features[0]:.2f}", delta="Vegetation Health")
-                
-                st.success("Analysis Complete!")
+                st.metric("Predicted Yield", f"{prediction:.2f} t/ha")
+                st.metric("NDVI Index", f"{features[0]:.2f}")
                 st.balloons()
             else:
-                st.error("Model Error: Check path 'models/omni_terra_v1.pth'")
+                st.error("Please upload 'omni_terra_v1.pth' to the 'models' folder in GitHub.")
 
 with col2:
     st.subheader("🗺️ Spatial Analysis View")
-    # Fixed Folium Map: Changed "Stamen Terrain" to "OpenStreetMap"
-    m = folium.Map(location=[lat, lon], zoom_start=14, tiles="OpenStreetMap")
-    folium.Marker([lat, lon], popup="Analysis Site", icon=folium.Icon(color='green', icon='leaf')).add_to(m)
-    folium.Circle([lat, lon], radius=500, color='green', fill=True, fill_opacity=0.2).add_to(m)
+    m = folium.Map(location=[lat, lon], zoom_start=14)
+    folium.Marker([lat, lon], icon=folium.Icon(color='green', icon='leaf')).add_to(m)
     folium_static(m)
-
-# --- 6. Insights Section ---
-st.divider()
-st.subheader("📊 System Insights")
-i1, i2, i3 = st.columns(3)
-with i1:
-    st.info("**Architecture**\n\nMulti-Head Attention Layers processing Sentinel-2 Spectral bands.")
-with i2:
-    st.info("**Carbon Modeling**\n\nEstimated Soil Organic Carbon sequestration based on biomass index.")
-with i3:
-    st.info("**Developer**\n\nPlatform designed & maintained by **ML Scientist Agha Wafa Abbas**.")
-
-st.markdown('<div class="footer">© 2024 OmniTerra Global | Powered by Google Earth Engine & PyTorch</div>', unsafe_allow_html=True)
