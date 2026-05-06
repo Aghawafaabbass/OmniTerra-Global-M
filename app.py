@@ -86,7 +86,7 @@ def get_live_features(lat, lon):
 # --- 5. Main Layout ---
 col1, col2 = st.columns([1, 1.5])
 
-# Initialize session state for features and prediction to avoid NameError
+# Initialize session state for features and prediction
 if 'features' not in st.session_state:
     st.session_state['features'] = [0.5, 290.0, 0.02]
 if 'prediction' not in st.session_state:
@@ -131,17 +131,34 @@ with col1:
                 st.error("Model Error: Check 'models/' folder.")
 
 with col2:
-    st.subheader("🗺️ Google Satellite Field View")
+    st.subheader("🗺️ Satellite Intelligence View")
+    # PROFESSIONAL FIX: Google Satellite Hybrid Tiles (lyrs=y)
     m = folium.Map(
         location=[lat, lon], 
-        zoom_start=16, 
+        zoom_start=14, 
         tiles='https://google.com{x}&y={y}&z={z}', 
-        attr='Google Satellite'
+        attr='Google Satellite Hybrid'
     )
-    folium.Marker([lat, lon], popup="Analysis Target", icon=folium.Icon(color='green', icon='leaf')).add_to(m)
+    
+    # Analysis Target Marker
+    folium.Marker(
+        [lat, lon], 
+        popup=f"Analysis Target: {lat}, {lon}", 
+        icon=folium.Icon(color='darkgreen', icon='info-sign')
+    ).add_to(m)
+    
+    # Visual Buffer Circle (500m area being analyzed)
+    folium.Circle(
+        location=[lat, lon],
+        radius=500,
+        color="#2E7D32",
+        fill=True,
+        fill_opacity=0.2
+    ).add_to(m)
+    
     folium_static(m)
 
-# --- 6. Advanced Insights Footer (FIXED NameError) ---
+# --- 6. Advanced Insights Footer ---
 st.divider()
 st.subheader("📊 Multi-Modal Insights")
 i1, i2, i3 = st.columns(3)
