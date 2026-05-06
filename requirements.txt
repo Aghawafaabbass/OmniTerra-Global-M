@@ -1,7 +1,6 @@
+earthengine-api
+streamlit
 torch
 numpy
 pandas
-streamlit
-ee
 geemap
-requests
