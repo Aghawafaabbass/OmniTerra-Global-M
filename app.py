@@ -86,6 +86,12 @@ def get_live_features(lat, lon):
 # --- 5. Main Layout ---
 col1, col2 = st.columns([1, 1.5])
 
+# Initialize session state for features and prediction to avoid NameError
+if 'features' not in st.session_state:
+    st.session_state['features'] = [0.5, 290.0, 0.02]
+if 'prediction' not in st.session_state:
+    st.session_state['prediction'] = 0.0
+
 with col1:
     st.subheader("📍 Analysis Parameters")
     lat = st.number_input("Latitude", value=31.5204, format="%.4f")
@@ -93,50 +99,39 @@ with col1:
     crop = st.selectbox("Select Crop Type", ["Wheat", "Rice", "Maize"])
     
     if st.button("🚀 Run Live Inference"):
-        with st.spinner("Analyzing Satellite Imagery via Transformer Layers..."):
+        with st.spinner("Analyzing Satellite Imagery..."):
             model = load_omni_model()
             if model:
-                features = get_live_features(lat, lon)
-                feature_tensor = torch.tensor([features], dtype=torch.float32)
+                st.session_state['features'] = get_live_features(lat, lon)
+                feature_tensor = torch.tensor([st.session_state['features']], dtype=torch.float32)
                 
                 with torch.no_grad():
-                    prediction = model(feature_tensor).item()
+                    st.session_state['prediction'] = model(feature_tensor).item()
                 
                 st.success("Analysis Complete!")
                 res_col1, res_col2 = st.columns(2)
-                res_col1.metric("Predicted Yield", f"{prediction:.2f} t/ha")
-                res_col2.metric("NDVI Index", f"{features[0]:.2f}")
+                res_col1.metric("Predicted Yield", f"{st.session_state['prediction']:.2f} t/ha")
+                res_col2.metric("NDVI Index", f"{st.session_state['features'][0]:.2f}")
                 
-                # FIELD GUIDANCE LOGIC
                 st.markdown("---")
                 st.markdown("### 💡 Precision Insights")
-                if features[0] < 0.3:
+                if st.session_state['features'][0] < 0.3:
                     st.warning("**Status:** Low Vegetation Density detected.")
                     st.write("**Action:** Consider nitrogen-based soil enrichment.")
-                elif features[0] > 0.6:
+                elif st.session_state['features'][0] > 0.6:
                     st.success("**Status:** High Photosynthetic Activity.")
-                    st.write("**Action:** Maintain current nutrient levels for optimal harvest.")
+                    st.write("**Action:** Maintain current nutrient levels.")
                 else:
                     st.info("**Status:** Normal Growth Cycle.")
-                    st.write("**Action:** Regular monitoring for pest or heat-stress recommended.")
+                    st.write("**Action:** Regular monitoring recommended.")
 
-                report_text = f"""
-                OMNITERRA GLOBAL YIELD REPORT
-                Date: {datetime.now().strftime('%Y-%m-%d')}
-                Location: {lat}, {lon}
-                Crop: {crop}
-                -------------------------
-                Predicted Yield: {prediction:.2f} t/ha
-                NDVI Value: {features[0]:.2f}
-                Developed by: ML Scientist Agha Wafa Abbas
-                """
-                st.download_button("📥 Download PDF Report", report_text, file_name=f"OmniTerra_Report_{lat}_{lon}.txt")
+                report_text = f"Report: {lat}, {lon}\nYield: {st.session_state['prediction']:.2f} t/ha"
+                st.download_button("📥 Download Report", report_text, file_name=f"OmniTerra_{lat}_{lon}.txt")
             else:
-                st.error("Model Error: Ensure 'models/omni_terra_v1.pth' is uploaded.")
+                st.error("Model Error: Check 'models/' folder.")
 
 with col2:
     st.subheader("🗺️ Google Satellite Field View")
-    # GOOGLE SATELLITE TILE INTEGRATION
     m = folium.Map(
         location=[lat, lon], 
         zoom_start=16, 
@@ -144,20 +139,20 @@ with col2:
         attr='Google Satellite'
     )
     folium.Marker([lat, lon], popup="Analysis Target", icon=folium.Icon(color='green', icon='leaf')).add_to(m)
-    folium.Circle([lat, lon], radius=500, color='green', fill=True, fill_opacity=0.1).add_to(m)
     folium_static(m)
 
-# --- 6. Advanced Insights Footer ---
+# --- 6. Advanced Insights Footer (FIXED NameError) ---
 st.divider()
 st.subheader("📊 Multi-Modal Insights")
 i1, i2, i3 = st.columns(3)
 with i1:
     st.write("🌿 **Vegetation Health**")
-    val = "Optimal" if features[0] > 0.4 else "Critical Monitoring" if features[0] < 0.2 else "Stable"
+    current_ndvi = st.session_state['features'][0]
+    val = "Optimal" if current_ndvi > 0.4 else "Critical Monitoring" if current_ndvi < 0.2 else "Stable"
     st.caption(f"Status based on Transformer Attention: **{val}**")
 with i2:
-    st.write("☁️ **Carbon Modeling**")
-    carbon_estimate = prediction * 0.47
+    st.write("☁️ **Carbon Estimate**")
+    carbon_estimate = st.session_state['prediction'] * 0.47
     st.caption(f"Estimated Sequestration: **{carbon_estimate:.2f} Mg C/ha**")
 with i3:
     st.write("🔬 **Model Analytics**")
