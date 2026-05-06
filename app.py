@@ -81,7 +81,7 @@ with col1:
     lon = st.number_input("Longitude", value=-106.67, format="%.4f")
     
     if st.button("🚀 Run Live Inference"):
-        with st.spinner("Fetching Satellite Data & Running Transformer..."):
+        with st.spinner("Fetching Satellite Data & Running Transformer..."): 
             # A. Get Data
             features = get_live_features(lat, lon)
             feature_tensor = torch.tensor([features], dtype=torch.float32)
