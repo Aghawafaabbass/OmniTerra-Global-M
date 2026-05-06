@@ -2,13 +2,24 @@ import streamlit as st
 import torch
 import ee
 import numpy as np
+import json
 
-# 1. Initialize Earth Engine (Streamlit Cloud uses Secrets for this)
-# For local/Colab testing, ensure you are authenticated
-try:
-    ee.Initialize()
-except Exception as e:
-    st.error("Earth Engine not initialized. Please authenticate.")
+# 1. Initialize Earth Engine with Service Account
+def initialize_ee():
+    if not ee.data._is_initialized:
+        try:
+            # Fetch secret from Streamlit Cloud
+            secret_json = st.secrets["GCP_SERVICE_ACCOUNT"]
+            info = json.loads(secret_json)
+            
+            # Authenticate using the service account info
+            credentials = ee.ServiceAccountCredentials(info['client_email'], key_data=secret_json)
+            ee.Initialize(credentials)
+        except Exception as e:
+            st.error(f"Earth Engine failed to initialize: {e}")
+            st.stop()
+
+initialize_ee()
 
 # 2. Model Architecture (Must match your Training)
 class OmniTerraTransformer(torch.nn.Module):
@@ -26,21 +37,38 @@ class OmniTerraTransformer(torch.nn.Module):
         out, _ = self.attention(x, x, x)
         return self.ffn(out.squeeze(1))
 
-# 3. Real-Time Feature Extractor
-def get_live_features(lat, lon):
-    point = ee.Geometry.Point([lon, lat])
-    # Fetch latest Sentinel-2 Median Image
-    img = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterBounds(point).median()
-    ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
-    
-    # Get values
-    stats = ndvi.reduceRegion(reducer=ee.Reducer.mean(), geometry=point.buffer(500), scale=10).getInfo()
-    ndvi_val = stats.get('NDVI', 0.5) # Default if missing
-    
-    # Static placeholders for Weather/Precip (Can be linked to Weather API later)
-    return [ndvi_val, 290.0, 0.02] 
+# 3. Load Model (Cached to prevent reloading on every click)
+@st.cache_resource
+def load_model():
+    model = OmniTerraTransformer()
+    try:
+        model.load_state_dict(torch.load('models/omni_terra_v1.pth', map_location='cpu'))
+        model.eval()
+        return model
+    except FileNotFoundError:
+        st.error("Model file not found in 'models/omni_terra_v1.pth'")
+        return None
 
-# 4. Streamlit UI
+# 4. Real-Time Feature Extractor (Cached for performance)
+@st.cache_data(ttl=3600)
+def get_live_features(lat, lon):
+    try:
+        point = ee.Geometry.Point([lon, lat])
+        # Fetch latest Sentinel-2 Median Image
+        img = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterBounds(point).median()
+        ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        
+        # Get values
+        stats = ndvi.reduceRegion(reducer=ee.Reducer.mean(), geometry=point.buffer(500), scale=10).getInfo()
+        ndvi_val = stats.get('NDVI', 0.5) 
+        
+        # Features: [NDVI, Temp Placeholder, Precip Placeholder]
+        return [ndvi_val, 290.0, 0.02]
+    except Exception as e:
+        st.error(f"Error fetching satellite data: {e}")
+        return [0.5, 290.0, 0.02]
+
+# 5. Streamlit UI
 st.set_page_config(page_title="OmniTerra AI", layout="wide")
 st.title("🌍 OmniTerra: Global Yield Intelligence")
 st.markdown("### Multi-Modal Spatio-Temporal Transformer Framework")
@@ -59,16 +87,15 @@ with col1:
             feature_tensor = torch.tensor([features], dtype=torch.float32)
             
             # B. Load Model
-            model = OmniTerraTransformer()
-            model.load_state_dict(torch.load('models/omni_terra_v1.pth', map_location='cpu'))
-            model.eval()
+            model = load_model()
             
-            # C. Predict
-            with torch.no_grad():
-                prediction = model(feature_tensor).item()
-            
-            st.metric("Predicted Wheat Yield", f"{prediction:.2f} t/ha")
-            st.success("Analysis Complete!")
+            if model:
+                # C. Predict
+                with torch.no_grad():
+                    prediction = model(feature_tensor).item()
+                
+                st.metric("Predicted Wheat Yield", f"{prediction:.2f} t/ha")
+                st.success("Analysis Complete!")
 
 with col2:
     st.header("📊 System Insights")
