@@ -1,0 +1,3 @@
+Report: 27.6104, 111.7088
+Crop: Rice
+Yield: 0.89 t/ha

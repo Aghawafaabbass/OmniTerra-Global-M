@@ -1,0 +1,3 @@
+Report: 49.5883, 34.5514
+Crop: Wheat
+Yield: 3.10 t/ha
