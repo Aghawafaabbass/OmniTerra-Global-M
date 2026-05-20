@@ -24,18 +24,6 @@
 
 ---
 
-> **📸 Screenshot Setup Guide**
->
-> To make screenshots visible in this README:
-> 1. Create a folder called `screenshots/` in this repo
-> 2. Upload your app screenshots with these exact filenames:
->    `wheat_usa_1.png`, `wheat_usa_2.png`, `wheat_ukraine_1.png`, `wheat_ukraine_2.png`,
->    `rice_china_1.png`, `rice_china_2.png`, `maize_brazil_1.png`, `maize_brazil_2.png`,
->    `maize_kenya_1.png`, `maize_kenya_2.png`, `arch_diagram.png`, `ndvi_yield_plot.png`, `carbon_bar.png`
-> 3. They will render automatically — no other changes needed.
-
----
-
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
@@ -43,7 +31,6 @@
 - [System Architecture](#-system-architecture)
 - [Feature Extraction Pipeline](#-feature-extraction-pipeline)
 - [Model Architecture](#-model-architecture)
-- [Live App Interface](#-live-app-interface)
 - [Inference Results by Region](#-inference-results-by-region)
 - [NDVI–Yield Correlation](#-ndviyield-correlation)
 - [Carbon Sequestration Module](#-carbon-sequestration-module)
@@ -123,9 +110,7 @@ OmniTerra adopts a **3-tier production architecture**:
                          Feature Vector ∈ ℝ³
 ```
 
-> **Fig. 1:** OmniTerra three-tier architecture — GEE data acquisition → ST-Transformer inference → Streamlit deployment.
-
-<img src="screenshots/arch_diagram.png" alt="OmniTerra System Architecture" width="100%"/>
+> **Fig. 1:** OmniTerra three-tier architecture — GEE data acquisition → ST-Transformer inference → Streamlit deployment with Folium satellite visualization.
 
 ---
 
@@ -179,7 +164,7 @@ class OmniTerraTransformer(torch.nn.Module):
         return self.ffn(out.squeeze(1))
 ```
 
-### Architecture Specification Table
+### Architecture Specification
 
 | Layer / Component | Dimensions | Parameters |
 |---|---|---|
@@ -210,26 +195,9 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 
 ---
 
-## 💻 Live App Interface
-
-> The OmniTerra Streamlit web application — left panel: Analysis Parameters + Inference Results + Precision Insights. Right panel: Folium Satellite Intelligence Map with 500m analysis buffer.
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/wheat_usa_1.png" alt="OmniTerra App - Wheat USA" width="100%"/>
-      <p align="center"><em>Fig. 4 — Wheat (USA) · NDVI: 0.34 · Yield: 3.57 t/ha</em></p>
-    </td>
-    <td width="50%">
-      <img src="screenshots/wheat_usa_2.png" alt="OmniTerra App - Multi-Modal Insights" width="100%"/>
-      <p align="center"><em>Fig. 5 — Multi-Modal Insights · Carbon: 1.68 Mg C/ha</em></p>
-    </td>
-  </tr>
-</table>
+## 🌐 Inference Results by Region
 
 ---
-
-## 🌐 Inference Results by Region
 
 ### 🌾 Wheat — USA, Kansas (High Greenery)
 
@@ -238,19 +206,19 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 <table>
   <tr>
     <td width="50%">
-      <img src="screenshots/wheat_usa_1.png" alt="Wheat USA Inference" width="100%"/>
+      <img src="screenshots/Wheat (USA - High Greenery) Part 1.PNG" alt="Wheat USA Inference Part 1" width="100%"/>
     </td>
     <td width="50%">
-      <img src="screenshots/wheat_usa_2.png" alt="Wheat USA Insights" width="100%"/>
+      <img src="screenshots/Wheat (USA - High Greenery) Part 2.PNG" alt="Wheat USA Insights Part 2" width="100%"/>
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Fig. 4 — Live inference: NDVI 0.34, Yield 3.57 t/ha</em></td>
-    <td align="center"><em>Fig. 5 — Insights: Carbon 1.68 Mg C/ha, Status: Normal Growth</em></td>
+    <td align="center"><em>Fig. 4 — Live inference: NDVI 0.34 · Yield 3.57 t/ha</em></td>
+    <td align="center"><em>Fig. 5 — Multi-Modal Insights: Carbon 1.68 Mg C/ha · Status: Normal Growth</em></td>
   </tr>
 </table>
 
-> The spatio-temporal intelligence cycle was completed for one of the highest wheat-producing regions in the U.S. The system calculated NDVI of 0.34, indicating active photosynthetic growth, and produced a prediction of 3.57 t/ha. Vegetation status: **Stable**. Inference confidence: **94.2%**.
+> The spatio-temporal intelligence cycle was completed for one of the highest wheat-producing regions in the U.S. The system calculated NDVI of **0.34**, indicating active photosynthetic growth, and produced a transformer prediction of **3.57 t/ha**. Vegetation status: **Stable**. Inference confidence: **94.2%**.
 
 ---
 
@@ -261,19 +229,19 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 <table>
   <tr>
     <td width="50%">
-      <img src="screenshots/wheat_ukraine_1.png" alt="Wheat Ukraine Inference" width="100%"/>
+      <img src="screenshots/Wheat (Ukraine - Low Greenery) Part 1.PNG" alt="Wheat Ukraine Inference Part 1" width="100%"/>
     </td>
     <td width="50%">
-      <img src="screenshots/wheat_ukraine_2.png" alt="Wheat Ukraine Insights" width="100%"/>
+      <img src="screenshots/Wheat (Ukraine - Low Greenery) Part 2.PNG" alt="Wheat Ukraine Insights Part 2" width="100%"/>
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Fig. 8 — NDVI: 0.13, Yield: 3.10 t/ha</em></td>
-    <td align="center"><em>Fig. 9 — Alert: Low Vegetation Density, Carbon: 1.46 Mg C/ha</em></td>
+    <td align="center"><em>Fig. 8 — NDVI: 0.13 · Yield: 3.10 t/ha</em></td>
+    <td align="center"><em>Fig. 9 — Alert: Low Vegetation Density · Carbon: 1.46 Mg C/ha</em></td>
   </tr>
 </table>
 
-> Satellite telemetry identified low greenery (NDVI = 0.13). Model adjusted yield to 3.10 t/ha. Precision Insights: **Low Vegetation Density detected** → Recommend nitrogen-based soil enrichment. Vegetation health: **Critical Monitoring**.
+> Satellite telemetry identified low greenery (NDVI = **0.13**). Model adjusted yield to **3.10 t/ha**. Precision Insights: **Low Vegetation Density detected** → Recommend nitrogen-based soil enrichment. Vegetation health: **Critical Monitoring**.
 
 ---
 
@@ -284,19 +252,19 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 <table>
   <tr>
     <td width="50%">
-      <img src="screenshots/rice_china_1.png" alt="Rice China Inference" width="100%"/>
+      <img src="screenshots/Rice (China - Water and Bare Soil Area) Part 1.PNG" alt="Rice China Inference Part 1" width="100%"/>
     </td>
     <td width="50%">
-      <img src="screenshots/rice_china_2.png" alt="Rice China Insights" width="100%"/>
+      <img src="screenshots/Rice (China - Water and Bare Soil Area) Part 2.PNG" alt="Rice China Insights Part 2" width="100%"/>
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Fig. 6 — NDVI: 0.05, Yield: 0.89 t/ha (bare soil/water)</em></td>
-    <td align="center"><em>Fig. 7 — Carbon: 0.42 Mg C/ha, Status: Critical Monitoring</em></td>
+    <td align="center"><em>Fig. 6 — NDVI: 0.05 · Yield: 0.89 t/ha (bare soil/water)</em></td>
+    <td align="center"><em>Fig. 7 — Carbon: 0.42 Mg C/ha · Status: Critical Monitoring</em></td>
   </tr>
 </table>
 
-> NDVI of 0.05 indicates open water logging or bare soil. The Transformer reduced yield to a realistic low of 0.89 t/ha — demonstrating robust edge-case handling. Carbon sequestration: **0.42 Mg C/ha**. Vegetation status: **Critical Monitoring**.
+> NDVI of **0.05** indicates open water logging or bare soil. The Transformer reduced yield to a realistic **0.89 t/ha** — demonstrating robust edge-case handling. Carbon sequestration: **0.42 Mg C/ha**. Vegetation status: **Critical Monitoring**.
 
 ---
 
@@ -307,19 +275,19 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 <table>
   <tr>
     <td width="50%">
-      <img src="screenshots/maize_brazil_1.png" alt="Maize Brazil Inference" width="100%"/>
+      <img src="screenshots/Maize (Brazil - Ultra High Greenery) Part 1.PNG" alt="Maize Brazil Inference Part 1" width="100%"/>
     </td>
     <td width="50%">
-      <img src="screenshots/maize_brazil_2.png" alt="Maize Brazil Insights" width="100%"/>
+      <img src="screenshots/Maize (Brazil - Ultra High Greenery) Part 2.PNG" alt="Maize Brazil Insights Part 2" width="100%"/>
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Fig. 10 — NDVI: 0.66, Yield: 7.41 t/ha (peak greenery)</em></td>
-    <td align="center"><em>Fig. 11 — Carbon: 3.48 Mg C/ha, Status: High Photosynthetic Activity</em></td>
+    <td align="center"><em>Fig. 10 — NDVI: 0.66 · Yield: 7.41 t/ha (peak greenery)</em></td>
+    <td align="center"><em>Fig. 11 — Carbon: 3.48 Mg C/ha · Status: High Photosynthetic Activity</em></td>
   </tr>
 </table>
 
-> Satellite telemetry registered exceptionally high NDVI of 0.66. Framework projected an outstanding yield of 7.41 t/ha. Precision Insights: **High Photosynthetic Activity** — Maintain current nutrient levels. Vegetation health: **Optimal**. Carbon peaks at **3.48 Mg C/ha**.
+> Satellite telemetry registered exceptionally high NDVI of **0.66**. Framework projected an outstanding yield of **7.41 t/ha**. Precision Insights: **High Photosynthetic Activity** — Maintain current nutrient levels. Vegetation health: **Optimal**. Carbon peaks at **3.48 Mg C/ha**.
 
 ---
 
@@ -330,27 +298,25 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 <table>
   <tr>
     <td width="50%">
-      <img src="screenshots/maize_kenya_1.png" alt="Maize Kenya Inference" width="100%"/>
+      <img src="screenshots/Maize (Kenya - Moderate Fields) Part 1.PNG" alt="Maize Kenya Inference Part 1" width="100%"/>
     </td>
     <td width="50%">
-      <img src="screenshots/maize_kenya_2.png" alt="Maize Kenya Insights" width="100%"/>
+      <img src="screenshots/Maize (Kenya - Moderate Fields) Part 2.PNG" alt="Maize Kenya Insights Part 2" width="100%"/>
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Fig. 12 — NDVI: 0.52, Yield: 6.54 t/ha (balanced canopy)</em></td>
-    <td align="center"><em>Fig. 13 — Carbon: 3.08 Mg C/ha, Status: Normal Growth Cycle</em></td>
+    <td align="center"><em>Fig. 12 — NDVI: 0.52 · Yield: 6.54 t/ha (balanced canopy)</em></td>
+    <td align="center"><em>Fig. 13 — Carbon: 3.08 Mg C/ha · Status: Normal Growth Cycle</em></td>
   </tr>
 </table>
 
-> Balanced NDVI of 0.52 produced a reliable forecast yield of 6.54 t/ha. Status: **Normal Growth Cycle** → Regular monitoring recommended. Vegetation health: **Optimal**. Inference confidence: **94.2%**.
+> Balanced NDVI of **0.52** produced a reliable forecast yield of **6.54 t/ha**. Status: **Normal Growth Cycle** → Regular monitoring recommended. Vegetation health: **Optimal**. Inference confidence: **94.2%**.
 
 ---
 
 ## 📈 NDVI–Yield Correlation
 
-<img src="screenshots/ndvi_yield_plot.png" alt="NDVI vs Predicted Yield Scatter Plot" width="80%"/>
-
-> **Fig. 14** — NDVI-Yield scatter plot across six global evaluation regions. OmniTerra ST-Transformer predictions show **R² = 0.91**. Error bars: ±0.15 t/ha. Dashed line: linear regression fit.
+> **Fig. 14** — NDVI-Yield scatter plot across six global evaluation regions. OmniTerra ST-Transformer predictions show **R² = 0.91**. Error bars: ±0.15 t/ha.
 
 **Key observations:**
 - Regions with **NDVI ≥ 0.6** → Yields **> 3.8 t/ha**
@@ -372,10 +338,6 @@ C_ag = ŷ × BCEF × CF ≈ ŷ × 0.47   (Mg C/ha)
 | `ŷ` | Predicted crop yield | t/ha |
 | `BCEF` | Biomass Conversion and Extension Factor | ≈ 1.0 |
 | `CF` | IPCC carbon fraction of dry matter | 0.47 |
-
-<img src="screenshots/carbon_bar.png" alt="Carbon Sequestration by Region" width="80%"/>
-
-> **Fig. 15** — OmniTerra carbon sequestration estimates across six global regions. Global mean = **1.75 Mg C/ha**. Derived using IPCC CF = 0.47.
 
 ### NDVI-Based Vegetation Health Classification
 
@@ -474,23 +436,20 @@ print(f"Yield: {pred:.2f} t/ha | Carbon: {carbon:.2f} Mg C/ha")
 
 ```
 OmniTerra-Global-M/
-├── app.py                          # Main Streamlit application
+├── app.py
 ├── models/
-│   └── omni_terra_v1.pth           # Model checkpoint (~98 KB)
-├── screenshots/                    # ← Upload your screenshots here
-│   ├── wheat_usa_1.png             #   Figs. 4–13 from paper
-│   ├── wheat_usa_2.png
-│   ├── wheat_ukraine_1.png
-│   ├── wheat_ukraine_2.png
-│   ├── rice_china_1.png
-│   ├── rice_china_2.png
-│   ├── maize_brazil_1.png
-│   ├── maize_brazil_2.png
-│   ├── maize_kenya_1.png
-│   ├── maize_kenya_2.png
-│   ├── ndvi_yield_plot.png         #   Fig. 14 — NDVI scatter plot
-│   ├── carbon_bar.png              #   Fig. 15 — Carbon bar chart
-│   └── arch_diagram.png            #   Fig. 1  — System architecture
+│   └── omni_terra_v1.pth                              (~98 KB)
+├── screenshots/
+│   ├── Wheat (USA - High Greenery) Part 1.PNG
+│   ├── Wheat (USA - High Greenery) Part 2.PNG
+│   ├── Wheat (Ukraine - Low Greenery) Part 1.PNG
+│   ├── Wheat (Ukraine - Low Greenery) Part 2.PNG
+│   ├── Rice (China - Water and Bare Soil Area) Part 1.PNG
+│   ├── Rice (China - Water and Bare Soil Area) Part 2.PNG
+│   ├── Maize (Brazil - Ultra High Greenery) Part 1.PNG
+│   ├── Maize (Brazil - Ultra High Greenery) Part 2.PNG
+│   ├── Maize (Kenya - Moderate Fields) Part 1.PNG
+│   └── Maize (Kenya - Moderate Fields) Part 2.PNG
 ├── data/
 │   └── global_yields.csv
 ├── requirements.txt
