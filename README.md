@@ -142,47 +142,47 @@ class OmniTerraTransformer(torch.nn.Module):
 ---
 
 ### 🌾 Wheat — USA, Kansas (High Greenery)
-**Coordinates:** `38.5000°N, -98.0000°E` &nbsp;|&nbsp; **NDVI:** `0.34` &nbsp;|&nbsp; **Yield:** `3.57 t/ha` &nbsp;|&nbsp; **Carbon:** `1.68 Mg C/ha`
+**Coordinates:** `38.5000°N, -98.0000°E` | **NDVI:** `0.34` | **Yield:** `3.57 t/ha` | **Carbon:** `1.68 Mg C/ha`
 
 | | |
-|---|---|
-| ![Fig4](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20(USA%20-%20High%20Greenery)%20Part%201.PNG?raw=true) | ![Fig5](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20(USA%20-%20High%20Greenery)%20Part%202.PNG?raw=true) |
+|:---:|:---:|
+| ![Fig4](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20%28USA%20-%20High%20Greenery%29%20Part%201.PNG?raw=true) | ![Fig5](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20%28USA%20-%20High%20Greenery%29%20Part%202.PNG?raw=true) |
 | *Fig. 4 — Live inference · NDVI: 0.34 · Yield: 3.57 t/ha* | *Fig. 5 — Multi-Modal Insights · Carbon: 1.68 Mg C/ha · Status: Normal Growth* |
 
-> Live inference for one of the highest wheat-producing regions in the U.S. NDVI **0.34** indicates active photosynthetic growth. Transformer predicted **3.57 t/ha**. Vegetation status: **Stable**. Inference confidence: **94.2%**.
+> NDVI **0.34** indicates active photosynthetic growth. Transformer predicted **3.57 t/ha**. Vegetation status: **Stable**. Inference confidence: **94.2%**.
 
 ---
 
 ### 🌾 Wheat — Ukraine (Low Greenery)
-**Coordinates:** `49.5883°N, 34.5514°E` &nbsp;|&nbsp; **NDVI:** `0.13` &nbsp;|&nbsp; **Yield:** `3.10 t/ha` &nbsp;|&nbsp; **Carbon:** `1.46 Mg C/ha`
+**Coordinates:** `49.5883°N, 34.5514°E` | **NDVI:** `0.13` | **Yield:** `3.10 t/ha` | **Carbon:** `1.46 Mg C/ha`
 
 | | |
-|---|---|
-| ![Fig8](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20(Ukraine%20-%20Low%20Greenery)%20Part%201.PNG?raw=true) | ![Fig9](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20(Ukraine%20-%20Low%20Greenery)%20Part%202.PNG?raw=true) |
+|:---:|:---:|
+| ![Fig8](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20%28Ukraine%20%E2%80%93%20Low%20Greenery%29%20Part%201.PNG?raw=true) | ![Fig9](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Wheat%20%28Ukraine%20%E2%80%93%20Low%20Greenery%29%20Part%202.PNG?raw=true) |
 | *Fig. 8 — NDVI: 0.13 · Yield: 3.10 t/ha* | *Fig. 9 — Alert: Low Vegetation Density · Carbon: 1.46 Mg C/ha* |
 
-> NDVI **0.13** → sparse vegetation. Model adjusted yield to **3.10 t/ha**. Precision Insights: **Low Vegetation Density** → Nitrogen-based soil enrichment recommended. Status: **Critical Monitoring**.
+> NDVI **0.13** → sparse vegetation. Model adjusted yield to **3.10 t/ha**. Status: **Critical Monitoring** → Nitrogen-based soil enrichment recommended.
 
 ---
 
 ### 🌾 Rice — China (Water / Bare Soil)
-**Coordinates:** `27.6104°N, 111.7088°E` &nbsp;|&nbsp; **NDVI:** `0.05` &nbsp;|&nbsp; **Yield:** `0.89 t/ha` &nbsp;|&nbsp; **Carbon:** `0.42 Mg C/ha`
+**Coordinates:** `27.6104°N, 111.7088°E` | **NDVI:** `0.05` | **Yield:** `0.89 t/ha` | **Carbon:** `0.42 Mg C/ha`
 
 | | |
-|---|---|
-| ![Fig6](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Rice%20(China%20-%20Water%20and%20Bare%20Soil%20Area)%20Part%201.PNG?raw=true) | ![Fig7](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Rice%20(China%20-%20Water%20and%20Bare%20Soil%20Area)%20Part%202.PNG?raw=true) |
+|:---:|:---:|
+| ![Fig6](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Rice%20%28China%20-%20Water%20and%20Bare%20Soil%20Area%29%20Part%201.PNG?raw=true) | ![Fig7](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Rice%20%28China%20-%20Water%20and%20Bare%20Soil%20Area%29%20Part%202.PNG?raw=true) |
 | *Fig. 6 — NDVI: 0.05 · Yield: 0.89 t/ha (bare soil/water)* | *Fig. 7 — Carbon: 0.42 Mg C/ha · Status: Critical Monitoring* |
 
-> NDVI **0.05** indicates water logging or bare soil. Transformer reduced yield to **0.89 t/ha** — robust edge-case handling. Carbon: **0.42 Mg C/ha**. Status: **Critical Monitoring**.
+> NDVI **0.05** indicates water logging or bare soil. Transformer reduced yield to **0.89 t/ha** — robust edge-case handling. Carbon: **0.42 Mg C/ha**.
 
 ---
 
 ### 🌽 Maize — Brazil (Ultra High Greenery)
-**Coordinates:** `12.5000°S, 55.5000°W` &nbsp;|&nbsp; **NDVI:** `0.66` &nbsp;|&nbsp; **Yield:** `7.41 t/ha` &nbsp;|&nbsp; **Carbon:** `3.48 Mg C/ha`
+**Coordinates:** `12.5000°S, 55.5000°W` | **NDVI:** `0.66` | **Yield:** `7.41 t/ha` | **Carbon:** `3.48 Mg C/ha`
 
 | | |
-|---|---|
-| ![Fig10](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20(Brazil%20-%20Ultra%20High%20Greenery)%20Part%201.PNG?raw=true) | ![Fig11](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20(Brazil%20-%20Ultra%20High%20Greenery)%20Part%202.PNG?raw=true) |
+|:---:|:---:|
+| ![Fig10](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20%28Brazil%20-%20Ultra%20High%20Greenery%29%20Part%201.PNG?raw=true) | ![Fig11](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20%28Brazil%20-%20Ultra%20High%20Greenery%29%20Part%202.PNG?raw=true) |
 | *Fig. 10 — NDVI: 0.66 · Yield: 7.41 t/ha (peak greenery)* | *Fig. 11 — Carbon: 3.48 Mg C/ha · Status: High Photosynthetic Activity* |
 
 > NDVI **0.66** — exceptionally high. Framework projected outstanding yield of **7.41 t/ha**. Status: **High Photosynthetic Activity** — Maintain current nutrient levels. Vegetation: **Optimal**.
@@ -190,11 +190,11 @@ class OmniTerraTransformer(torch.nn.Module):
 ---
 
 ### 🌽 Maize — Kenya (Moderate Fields)
-**Coordinates:** `1.0189°N, 34.9542°E` &nbsp;|&nbsp; **NDVI:** `0.52` &nbsp;|&nbsp; **Yield:** `6.54 t/ha` &nbsp;|&nbsp; **Carbon:** `3.08 Mg C/ha`
+**Coordinates:** `1.0189°N, 34.9542°E` | **NDVI:** `0.52` | **Yield:** `6.54 t/ha` | **Carbon:** `3.08 Mg C/ha`
 
 | | |
-|---|---|
-| ![Fig12](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20(Kenya%20-%20Moderate%20Fields)%20Part%201.PNG?raw=true) | ![Fig13](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20(Kenya%20-%20Moderate%20Fields)%20Part%202.PNG?raw=true) |
+|:---:|:---:|
+| ![Fig12](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20%28Kenya%20-%20Moderate%20Fields%29%20Part%201.PNG?raw=true) | ![Fig13](https://github.com/Aghawafaabbass/OmniTerra-Global-M/blob/main/screenshots/Maize%20%28Kenya%20-%20Moderate%20Fields%29%20Part%202.PNG?raw=true) |
 | *Fig. 12 — NDVI: 0.52 · Yield: 6.54 t/ha* | *Fig. 13 — Carbon: 3.08 Mg C/ha · Status: Normal Growth Cycle* |
 
 > Balanced NDVI **0.52** → reliable forecast of **6.54 t/ha**. Status: **Normal Growth Cycle** → Regular monitoring. Vegetation: **Optimal**. Inference confidence: **94.2%**.
@@ -261,21 +261,6 @@ streamlit run app.py
 4. View: Yield · NDVI · Carbon · Health Status · Recommendations
 5. **Download** `.txt` report
 
-```python
-# Programmatic inference
-import torch
-from app import OmniTerraTransformer, get_live_features
-
-model = OmniTerraTransformer()
-model.load_state_dict(torch.load('models/omni_terra_v1.pth', map_location='cpu'))
-model.eval()
-
-features = get_live_features(31.5204, 74.3587, "Wheat")
-with torch.no_grad():
-    pred = model(torch.tensor([features], dtype=torch.float32)).item()
-print(f"Yield: {pred:.2f} t/ha | Carbon: {pred*0.47:.2f} Mg C/ha")
-```
-
 ---
 
 ## 📦 Dataset & Experimental Setup
@@ -330,25 +315,25 @@ print(f"Yield: {pred:.2f} t/ha | Carbon: {pred*0.47:.2f} Mg C/ha")
 **Cite the preprint:**
 ```bibtex
 @article{abbas2026omniterra,
-  title   = {OmniTerra: A Multi-Modal Spatio-Temporal Transformer Framework
-             for Global Yield Intelligence and Carbon Sequestration Modeling},
-  author  = {Abbas, Agha Wafa},
-  year    = {2026},
+  title     = {OmniTerra: A Multi-Modal Spatio-Temporal Transformer Framework
+               for Global Yield Intelligence and Carbon Sequestration Modeling},
+  author    = {Abbas, Agha Wafa},
+  year      = {2026},
   publisher = {Zenodo},
-  doi     = {10.5281/zenodo.20308398},
-  url     = {https://doi.org/10.5281/zenodo.20308398}
+  doi       = {10.5281/zenodo.20308398},
+  url       = {https://doi.org/10.5281/zenodo.20308398}
 }
 ```
 
 **Cite the software:**
 ```bibtex
 @software{abbas2026omniterra_software,
-  title   = {OmniTerra v1.0.0 — Production Release},
-  author  = {Agha Wafa Abbas},
-  year    = {2026},
+  title     = {OmniTerra v1.0.0 — Production Release},
+  author    = {Agha Wafa Abbas},
+  year      = {2026},
   publisher = {Zenodo},
-  doi     = {10.5281/zenodo.20308741},
-  url     = {https://doi.org/10.5281/zenodo.20308741}
+  doi       = {10.5281/zenodo.20308741},
+  url       = {https://doi.org/10.5281/zenodo.20308741}
 }
 ```
 
