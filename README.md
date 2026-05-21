@@ -93,71 +93,50 @@ OmniTerra adopts a **3-tier production architecture**:
 ├──────────────────┼──────────────────────┼───────────────────────────┤
 │ Google Earth     │ ST-Transformer       │ Streamlit Web App         │
 │ Engine (GEE)     │ (OmniTerra)          │                           │
-│                  │                      │                           │
 │ • Sentinel-2 SR  │ • Input Projection   │ • Interactive UI          │
 │   COPERNICUS     │   R³ → R⁶⁴           │   (Lat/Lon/Crop)          │
-│   Collection     │                      │                           │
-│                  │ • Multi-Head Self-   │ • Folium Satellite Map    │
-│ • 500m Buffer    │   Attention (4 heads)│                           │
-│   Zone           │                      │ • Yield + Carbon Output   │
-│                  │ • FFN: R⁶⁴→R¹²⁸→R¹  │                           │
-│ • NDVI           │                      │ • Downloadable Reports    │
-│   Extraction     │ • ŷ (t/ha)           │                           │
-│   (B8−B4)/       │ • C_ag (Mg C/ha)    │                           │
-│   (B8+B4)        │                      │                           │
+│ • 500m Buffer    │ • Multi-Head Self-   │ • Folium Satellite Map    │
+│   Zone           │   Attention (4 heads)│ • Yield + Carbon Output   │
+│ • NDVI Extract   │ • FFN: R⁶⁴→R¹²⁸→R¹  │ • Downloadable Reports    │
+│   (B8−B4)/B8+B4  │ • ŷ (t/ha)          │                           │
 └──────────────────┴──────────────────────┴───────────────────────────┘
-                         x = [NDVI, T, SM]
-                         Feature Vector ∈ ℝ³
+                         x = [NDVI, T, SM] ∈ ℝ³
 ```
-
-> **Fig. 1:** OmniTerra three-tier architecture — GEE data acquisition → ST-Transformer inference → Streamlit deployment with Folium satellite visualization.
 
 ---
 
 ## 🛰️ Feature Extraction Pipeline
-
-```
-GEE API     ──►  S2 SR           ──►  500m Buffer    ──►  Temporal    ──►  Band Math      ──►  Feature Vector
-Coordinate       Harmonized            filterBounds()      Median           (B8−B4)/(B8+B4)      x=[NDVI,T,SM]
-Input (lat,lon)  Collection            Point.buffer()      .median()        NDVI ∈ [−1,+1]       T≈290K|SM≈0.02
-```
 
 **NDVI Formula:**
 ```
 NDVI = (ρ_NIR − ρ_Red) / (ρ_NIR + ρ_Red) = (B8 − B4) / (B8 + B4)
 ```
 
-- `ρ_NIR` = Near-Infrared reflectance, Band 8, λ = 842 nm
-- `ρ_Red` = Red reflectance, Band 4, λ = 665 nm
-- Cropland NDVI typically 0.2–0.9 during growing season
+| Band | Wavelength | Role |
+|---|---|---|
+| B8 (NIR) | 842 nm | Numerator — vegetation reflectance |
+| B4 (Red) | 665 nm | Denominator — chlorophyll absorption |
 
-**Output Feature Vector:**
-```
-x = [NDVI, T, SM] ∈ ℝ³
-     │       │    └── Soil Moisture baseline (~0.02)
-     │       └─────── Surface Temperature baseline (~290K)
-     └─────────────── Normalized Difference Vegetation Index
-```
+**Output Feature Vector:** `x = [NDVI, T≈290K, SM≈0.02] ∈ ℝ³`
 
 ---
 
 ## 🧠 Model Architecture
 
-### OmniTerraTransformer — PyTorch Implementation
+### OmniTerraTransformer — PyTorch
 
 ```python
 class OmniTerraTransformer(torch.nn.Module):
     def __init__(self, input_dim=3, model_dim=64):
         super().__init__()
         self.input_fc  = torch.nn.Linear(input_dim, model_dim)       # ℝ³ → ℝ⁶⁴
-        self.attention = torch.nn.MultiheadAttention(model_dim,       # 4-head MHSA
-                             num_heads=4, batch_first=True)
+        self.attention = torch.nn.MultiheadAttention(model_dim,
+                             num_heads=4, batch_first=True)           # 4-head MHSA
         self.ffn = torch.nn.Sequential(
-            torch.nn.Linear(model_dim, 128),                          # ℝ⁶⁴ → ℝ¹²⁸
+            torch.nn.Linear(model_dim, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(128, 1)                                   # ℝ¹²⁸ → ŷ ∈ ℝ
+            torch.nn.Linear(128, 1)                                   # → ŷ t/ha
         )
-
     def forward(self, x):
         x = self.input_fc(x).unsqueeze(1)
         out, _ = self.attention(x, x, x)
@@ -166,32 +145,14 @@ class OmniTerraTransformer(torch.nn.Module):
 
 ### Architecture Specification
 
-| Layer / Component | Dimensions | Parameters |
+| Layer | Dimensions | Parameters |
 |---|---|---|
 | Input Feature Vector | 3 | — |
 | Input Projection (Linear) | 3 → 64 | 256 |
-| Multi-Head Self-Attention | 64, 4 heads (d_k = 16) | 16,384 |
+| Multi-Head Self-Attention | 64, 4 heads | 16,384 |
 | FFN Layer 1 (Linear + ReLU) | 64 → 128 | 8,320 |
 | FFN Layer 2 (Linear) | 128 → 1 | 129 |
-| **Total Trainable Parameters** | — | **25,089** |
-
-### Mathematical Formulation
-
-**1) Input Projection:**
-```
-h₀ = x · W_in + b_in,    h₀ ∈ ℝ⁶⁴
-```
-
-**2) Multi-Head Self-Attention (Vaswani et al., 2017):**
-```
-Attention(Q, K, V) = softmax(QKᵀ / √d_k) · V
-MHSA(h₀) = Concat(head₁, ..., head₄) · W_O
-```
-
-**3) Feed-Forward Network → Yield Prediction:**
-```
-FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
-```
+| **Total Parameters** | — | **25,089** |
 
 ---
 
@@ -200,114 +161,129 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 ---
 
 ### 🌾 Wheat — USA, Kansas (High Greenery)
-
 **Coordinates:** `38.5000°N, -98.0000°E` | **NDVI:** `0.34` | **Yield:** `3.57 t/ha` | **Carbon:** `1.68 Mg C/ha`
 
 <table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/Wheat (USA - High Greenery) Part 1.PNG" alt="Wheat USA Inference Part 1" width="100%"/>
-    </td>
-    <td width="50%">
-      <img src="screenshots/Wheat (USA - High Greenery) Part 2.PNG" alt="Wheat USA Insights Part 2" width="100%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><em>Fig. 4 — Live inference: NDVI 0.34 · Yield 3.57 t/ha</em></td>
-    <td align="center"><em>Fig. 5 — Multi-Modal Insights: Carbon 1.68 Mg C/ha · Status: Normal Growth</em></td>
-  </tr>
+<tr>
+<td width="50%">
+
+![Wheat USA Part 1](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Wheat%20(USA%20-%20High%20Greenery)%20Part%201.PNG)
+
+</td>
+<td width="50%">
+
+![Wheat USA Part 2](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Wheat%20(USA%20-%20High%20Greenery)%20Part%202.PNG)
+
+</td>
+</tr>
+<tr>
+<td align="center"><em>Fig. 4 — Live inference · NDVI: 0.34 · Yield: 3.57 t/ha</em></td>
+<td align="center"><em>Fig. 5 — Multi-Modal Insights · Carbon: 1.68 Mg C/ha · Status: Normal Growth</em></td>
+</tr>
 </table>
 
-> The spatio-temporal intelligence cycle was completed for one of the highest wheat-producing regions in the U.S. The system calculated NDVI of **0.34**, indicating active photosynthetic growth, and produced a transformer prediction of **3.57 t/ha**. Vegetation status: **Stable**. Inference confidence: **94.2%**.
+> Live inference for one of the highest wheat-producing regions in the U.S. NDVI of **0.34** indicates active photosynthetic growth. Transformer predicted **3.57 t/ha**. Vegetation status: **Stable**. Inference confidence: **94.2%**.
 
 ---
 
 ### 🌾 Wheat — Ukraine (Low Greenery)
-
 **Coordinates:** `49.5883°N, 34.5514°E` | **NDVI:** `0.13` | **Yield:** `3.10 t/ha` | **Carbon:** `1.46 Mg C/ha`
 
 <table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/Wheat (Ukraine - Low Greenery) Part 1.PNG" alt="Wheat Ukraine Inference Part 1" width="100%"/>
-    </td>
-    <td width="50%">
-      <img src="screenshots/Wheat (Ukraine - Low Greenery) Part 2.PNG" alt="Wheat Ukraine Insights Part 2" width="100%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><em>Fig. 8 — NDVI: 0.13 · Yield: 3.10 t/ha</em></td>
-    <td align="center"><em>Fig. 9 — Alert: Low Vegetation Density · Carbon: 1.46 Mg C/ha</em></td>
-  </tr>
+<tr>
+<td width="50%">
+
+![Wheat Ukraine Part 1](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Wheat%20(Ukraine%20-%20Low%20Greenery)%20Part%201.PNG)
+
+</td>
+<td width="50%">
+
+![Wheat Ukraine Part 2](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Wheat%20(Ukraine%20-%20Low%20Greenery)%20Part%202.PNG)
+
+</td>
+</tr>
+<tr>
+<td align="center"><em>Fig. 8 — NDVI: 0.13 · Yield: 3.10 t/ha</em></td>
+<td align="center"><em>Fig. 9 — Alert: Low Vegetation Density · Carbon: 1.46 Mg C/ha</em></td>
+</tr>
 </table>
 
-> Satellite telemetry identified low greenery (NDVI = **0.13**). Model adjusted yield to **3.10 t/ha**. Precision Insights: **Low Vegetation Density detected** → Recommend nitrogen-based soil enrichment. Vegetation health: **Critical Monitoring**.
+> Satellite telemetry identified low greenery (NDVI = **0.13**). Model adjusted yield to **3.10 t/ha**. Precision Insights: **Low Vegetation Density detected** → Nitrogen-based soil enrichment recommended. Vegetation health: **Critical Monitoring**.
 
 ---
 
-### 🌾 Rice — China (Water / Bare Soil Area)
-
+### 🌾 Rice — China (Water / Bare Soil)
 **Coordinates:** `27.6104°N, 111.7088°E` | **NDVI:** `0.05` | **Yield:** `0.89 t/ha` | **Carbon:** `0.42 Mg C/ha`
 
 <table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/Rice (China - Water and Bare Soil Area) Part 1.PNG" alt="Rice China Inference Part 1" width="100%"/>
-    </td>
-    <td width="50%">
-      <img src="screenshots/Rice (China - Water and Bare Soil Area) Part 2.PNG" alt="Rice China Insights Part 2" width="100%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><em>Fig. 6 — NDVI: 0.05 · Yield: 0.89 t/ha (bare soil/water)</em></td>
-    <td align="center"><em>Fig. 7 — Carbon: 0.42 Mg C/ha · Status: Critical Monitoring</em></td>
-  </tr>
+<tr>
+<td width="50%">
+
+![Rice China Part 1](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Rice%20(China%20-%20Water%20and%20Bare%20Soil%20Area)%20Part%201.PNG)
+
+</td>
+<td width="50%">
+
+![Rice China Part 2](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Rice%20(China%20-%20Water%20and%20Bare%20Soil%20Area)%20Part%202.PNG)
+
+</td>
+</tr>
+<tr>
+<td align="center"><em>Fig. 6 — NDVI: 0.05 · Yield: 0.89 t/ha (bare soil/water)</em></td>
+<td align="center"><em>Fig. 7 — Carbon: 0.42 Mg C/ha · Status: Critical Monitoring</em></td>
+</tr>
 </table>
 
-> NDVI of **0.05** indicates open water logging or bare soil. The Transformer reduced yield to a realistic **0.89 t/ha** — demonstrating robust edge-case handling. Carbon sequestration: **0.42 Mg C/ha**. Vegetation status: **Critical Monitoring**.
+> NDVI of **0.05** indicates open water logging or bare soil. The Transformer reduced yield to **0.89 t/ha** — demonstrating robust edge-case handling. Carbon: **0.42 Mg C/ha**. Status: **Critical Monitoring**.
 
 ---
 
 ### 🌽 Maize — Brazil (Ultra High Greenery)
-
 **Coordinates:** `12.5000°S, 55.5000°W` | **NDVI:** `0.66` | **Yield:** `7.41 t/ha` | **Carbon:** `3.48 Mg C/ha`
 
 <table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/Maize (Brazil - Ultra High Greenery) Part 1.PNG" alt="Maize Brazil Inference Part 1" width="100%"/>
-    </td>
-    <td width="50%">
-      <img src="screenshots/Maize (Brazil - Ultra High Greenery) Part 2.PNG" alt="Maize Brazil Insights Part 2" width="100%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><em>Fig. 10 — NDVI: 0.66 · Yield: 7.41 t/ha (peak greenery)</em></td>
-    <td align="center"><em>Fig. 11 — Carbon: 3.48 Mg C/ha · Status: High Photosynthetic Activity</em></td>
-  </tr>
+<tr>
+<td width="50%">
+
+![Maize Brazil Part 1](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Maize%20(Brazil%20-%20Ultra%20High%20Greenery)%20Part%201.PNG)
+
+</td>
+<td width="50%">
+
+![Maize Brazil Part 2](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Maize%20(Brazil%20-%20Ultra%20High%20Greenery)%20Part%202.PNG)
+
+</td>
+</tr>
+<tr>
+<td align="center"><em>Fig. 10 — NDVI: 0.66 · Yield: 7.41 t/ha (peak greenery)</em></td>
+<td align="center"><em>Fig. 11 — Carbon: 3.48 Mg C/ha · Status: High Photosynthetic Activity</em></td>
+</tr>
 </table>
 
-> Satellite telemetry registered exceptionally high NDVI of **0.66**. Framework projected an outstanding yield of **7.41 t/ha**. Precision Insights: **High Photosynthetic Activity** — Maintain current nutrient levels. Vegetation health: **Optimal**. Carbon peaks at **3.48 Mg C/ha**.
+> NDVI of **0.66** — exceptionally high. Framework projected outstanding yield of **7.41 t/ha**. Precision Insights: **High Photosynthetic Activity** — Maintain current nutrient levels. Vegetation health: **Optimal**.
 
 ---
 
 ### 🌽 Maize — Kenya (Moderate Fields)
-
 **Coordinates:** `1.0189°N, 34.9542°E` | **NDVI:** `0.52` | **Yield:** `6.54 t/ha` | **Carbon:** `3.08 Mg C/ha`
 
 <table>
-  <tr>
-    <td width="50%">
-      <img src="screenshots/Maize (Kenya - Moderate Fields) Part 1.PNG" alt="Maize Kenya Inference Part 1" width="100%"/>
-    </td>
-    <td width="50%">
-      <img src="screenshots/Maize (Kenya - Moderate Fields) Part 2.PNG" alt="Maize Kenya Insights Part 2" width="100%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><em>Fig. 12 — NDVI: 0.52 · Yield: 6.54 t/ha (balanced canopy)</em></td>
-    <td align="center"><em>Fig. 13 — Carbon: 3.08 Mg C/ha · Status: Normal Growth Cycle</em></td>
-  </tr>
+<tr>
+<td width="50%">
+
+![Maize Kenya Part 1](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Maize%20(Kenya%20-%20Moderate%20Fields)%20Part%201.PNG)
+
+</td>
+<td width="50%">
+
+![Maize Kenya Part 2](https://raw.githubusercontent.com/Aghawafaabbass/OmniTerra-Global-M/main/screenshots/Maize%20(Kenya%20-%20Moderate%20Fields)%20Part%202.PNG)
+
+</td>
+</tr>
+<tr>
+<td align="center"><em>Fig. 12 — NDVI: 0.52 · Yield: 6.54 t/ha</em></td>
+<td align="center"><em>Fig. 13 — Carbon: 3.08 Mg C/ha · Status: Normal Growth Cycle</em></td>
+</tr>
 </table>
 
 > Balanced NDVI of **0.52** produced a reliable forecast yield of **6.54 t/ha**. Status: **Normal Growth Cycle** → Regular monitoring recommended. Vegetation health: **Optimal**. Inference confidence: **94.2%**.
@@ -316,18 +292,22 @@ FFN(x) = max(0, x · W₁ + b₁) · W₂ + b₂,    ŷ ∈ ℝ (t/ha)
 
 ## 📈 NDVI–Yield Correlation
 
-> **Fig. 14** — NDVI-Yield scatter plot across six global evaluation regions. OmniTerra ST-Transformer predictions show **R² = 0.91**. Error bars: ±0.15 t/ha.
+> **Fig. 14** — NDVI vs Predicted Yield across 6 global regions. **R² = 0.91**. Error bars: ±0.15 t/ha.
 
-**Key observations:**
-- Regions with **NDVI ≥ 0.6** → Yields **> 3.8 t/ha**
-- Moderate NDVI (0.48–0.53) → Yields **2.95–3.22 t/ha**
-- Bare soil / water (NDVI < 0.1) → yield scaled down by 80%
+| Region | Crop | NDVI | Yield (t/ha) | Carbon (Mg C/ha) |
+|---|---|---|---|---|
+| Punjab, India | Rice | 0.70 | 4.51 | 2.12 |
+| Iowa, USA | Maize | 0.65 | 4.12 | 1.94 |
+| Lahore, Pakistan | Wheat | 0.61 | 3.84 | 1.80 |
+| Global Average | — | 0.59 | 3.73 | 1.75 |
+| Saskatchewan, Canada | Wheat | 0.53 | 3.22 | 1.51 |
+| Sao Paulo, Brazil | Maize | 0.48 | 2.95 | 1.39 |
 
 ---
 
 ## ☁️ Carbon Sequestration Module
 
-**IPCC Formula (2006 Guidelines, Volume 4: AFOLU):**
+**IPCC 2006 Formula (Volume 4: AFOLU):**
 
 ```
 C_ag = ŷ × BCEF × CF ≈ ŷ × 0.47   (Mg C/ha)
@@ -337,7 +317,7 @@ C_ag = ŷ × BCEF × CF ≈ ŷ × 0.47   (Mg C/ha)
 |---|---|---|
 | `ŷ` | Predicted crop yield | t/ha |
 | `BCEF` | Biomass Conversion and Extension Factor | ≈ 1.0 |
-| `CF` | IPCC carbon fraction of dry matter | 0.47 |
+| `CF` | IPCC carbon fraction of dry matter | **0.47** |
 
 ### NDVI-Based Vegetation Health Classification
 
@@ -352,24 +332,13 @@ C_ag = ŷ × BCEF × CF ≈ ŷ × 0.47   (Mg C/ha)
 
 ## ⚙️ Installation
 
-### Prerequisites
-
-```bash
-Python >= 3.10
-PyTorch >= 2.0
-Google Earth Engine account (free at earthengine.google.com)
-```
-
-### Clone & Install
-
 ```bash
 git clone https://github.com/Aghawafaabbass/OmniTerra-Global-M.git
 cd OmniTerra-Global-M
 pip install -r requirements.txt
 ```
 
-### Requirements
-
+**requirements.txt:**
 ```txt
 streamlit>=1.28.0
 torch>=2.0.0
@@ -379,13 +348,12 @@ folium>=0.14.0
 streamlit-folium>=0.15.0
 ```
 
-### GEE Authentication
-
+**GEE Authentication:**
 ```bash
-# Local development
+# Local
 earthengine authenticate
 
-# Production (Streamlit Cloud) — add to Streamlit Secrets:
+# Streamlit Cloud → Secrets:
 # GCP_SERVICE_ACCOUNT = '{ "type": "service_account", ... }'
 ```
 
@@ -393,23 +361,17 @@ earthengine authenticate
 
 ## 🚀 Usage
 
-### Run Locally
-
 ```bash
 streamlit run app.py
-# Navigate to http://localhost:8501
 ```
 
-### Workflow
+1. Enter **Latitude & Longitude**
+2. Select **Crop Type** (Wheat / Rice / Maize)
+3. Click **"Run Live Inference"**
+4. View: Yield (t/ha) · NDVI · Carbon (Mg C/ha) · Health Status · Recommendations
+5. **Download Report** as `.txt`
 
-1. **Enter Coordinates** — Latitude & Longitude for your target field
-2. **Select Crop** — Wheat / Rice / Maize
-3. **Click "Run Live Inference"** — GEE queries Sentinel-2, extracts NDVI, ST-Transformer runs
-4. **Review outputs** — Yield (t/ha), NDVI, Vegetation Health, Carbon (Mg C/ha), Agronomic Recommendations
-5. **Download Report** — `.txt` summary file
-
-### Programmatic Inference
-
+**Programmatic:**
 ```python
 import torch
 from app import OmniTerraTransformer, get_live_features
@@ -418,14 +380,10 @@ model = OmniTerraTransformer()
 model.load_state_dict(torch.load('models/omni_terra_v1.pth', map_location='cpu'))
 model.eval()
 
-lat, lon, crop = 31.5204, 74.3587, "Wheat"
-features = get_live_features(lat, lon, crop)  # [NDVI, T, SM]
-
+features = get_live_features(31.5204, 74.3587, "Wheat")
 with torch.no_grad():
     pred = model(torch.tensor([features], dtype=torch.float32)).item()
-
-carbon = pred * 0.47
-print(f"Yield: {pred:.2f} t/ha | Carbon: {carbon:.2f} Mg C/ha")
+print(f"Yield: {pred:.2f} t/ha | Carbon: {pred*0.47:.2f} Mg C/ha")
 ```
 
 ---
@@ -433,12 +391,11 @@ print(f"Yield: {pred:.2f} t/ha | Carbon: {carbon:.2f} Mg C/ha")
 ## ☁️ Deployment
 
 ### Project Structure
-
 ```
 OmniTerra-Global-M/
 ├── app.py
 ├── models/
-│   └── omni_terra_v1.pth                              (~98 KB)
+│   └── omni_terra_v1.pth
 ├── screenshots/
 │   ├── Wheat (USA - High Greenery) Part 1.PNG
 │   ├── Wheat (USA - High Greenery) Part 2.PNG
@@ -450,32 +407,15 @@ OmniTerra-Global-M/
 │   ├── Maize (Brazil - Ultra High Greenery) Part 2.PNG
 │   ├── Maize (Kenya - Moderate Fields) Part 1.PNG
 │   └── Maize (Kenya - Moderate Fields) Part 2.PNG
-├── data/
-│   └── global_yields.csv
+├── data/global_yields.csv
 ├── requirements.txt
 ├── OmniTerra_Paper.pdf
 └── README.md
 ```
 
-### Streamlit Cloud Secrets
-
-```toml
-# .streamlit/secrets.toml
-GCP_SERVICE_ACCOUNT = '''
-{
-  "type": "service_account",
-  "project_id": "your-project-id",
-  "client_email": "your-sa@your-project.iam.gserviceaccount.com",
-  "private_key": "-----BEGIN RSA PRIVATE KEY-----\n..."
-}
-'''
-```
-
 ---
 
 ## 📦 Dataset & Experimental Setup
-
-### Global Yields Dataset
 
 | Entity | Year | Yield (t/ha) | Latitude | Longitude |
 |---|---|---|---|---|
@@ -490,19 +430,12 @@ GCP_SERVICE_ACCOUNT = '''
 | Parameter | Value |
 |---|---|
 | Framework | PyTorch 2.x |
-| Architecture | Spatio-Temporal Transformer |
-| Input Dimensionality | 3 (NDVI, T, SM) |
-| d_model | 64 |
-| Attention Heads | 4 |
-| FFN Hidden Dimension | 128 |
-| Total Parameters | 25,089 |
 | Optimizer | Adam (lr = 1e-3, wd = 1e-4) |
-| Loss Function | MSE |
-| Epochs | 200 (early stopping, patience = 20) |
+| Loss | MSE |
+| Epochs | 200 (early stopping patience=20) |
 | Validation Split | 20% |
 | Training Hardware | NVIDIA T4 GPU (Google Colab) |
-| Inference Platform | CPU (Streamlit Cloud) |
-| Satellite Source | Sentinel-2 SR Harmonized (GEE) |
+| Inference | CPU (Streamlit Cloud) |
 | Checkpoint Size | ~98 KB |
 
 ---
@@ -516,37 +449,15 @@ GCP_SERVICE_ACCOUNT = '''
 | Wang et al. [2022] | Graph Attention | ❌ | ❌ | ~87% |
 | **OmniTerra (Ours)** | **ST-Transformer** | **✅ GEE** | **✅ IPCC** | **94.2%** |
 
-**OmniTerra is the only production-deployed framework with simultaneous real-time EO integration, Transformer-based inference, and IPCC-aligned carbon estimation.**
-
-### Regional Inference Summary
-
-| Region | Crop | NDVI | Yield (t/ha) | Carbon (Mg C/ha) |
-|---|---|---|---|---|
-| Lahore, Pakistan | Wheat | 0.61 | 3.84 | 1.80 |
-| Saskatchewan, Canada | Wheat | 0.53 | 3.22 | 1.51 |
-| Sao Paulo, Brazil | Maize | 0.48 | 2.95 | 1.39 |
-| Punjab, India | Rice | 0.70 | 4.51 | 2.12 |
-| Iowa, USA | Maize | 0.65 | 4.12 | 1.94 |
-| **Global Average** | — | **0.59** | **3.73** | **1.75** |
-
 ---
 
 ## 💬 Discussion & Limitations
 
-### Significance
-
-- Eliminates dependence on pre-processed archives — **live GEE integration**
-- Dual utility: **food security** monitoring + **climate finance** instrument
-- Carbon module aligned to IPCC NDC reporting under the Paris Agreement
-- Directly addresses Pakistan's agricultural challenges (Lahore test region: 31.52°N, 74.36°E)
-
-### Limitations & Roadmap
-
 | # | Current Limitation | Planned Enhancement |
 |---|---|---|
-| 1 | Feature vector d_input = 3 | Add EVI, SAVI, LAI, Landsat-8 thermal, Sentinel-1 SAR |
-| 2 | Small validation dataset | Full FAOSTAT validation (190+ nations, 1961–2023) |
-| 3 | No explicit temporal modeling | Multi-temporal Transformer (Garnot et al. architecture) |
+| 1 | Feature vector d=3 | Add EVI, SAVI, LAI, Landsat-8, Sentinel-1 SAR |
+| 2 | Small validation dataset | Full FAOSTAT (190+ nations, 1961–2023) |
+| 3 | No temporal modeling | Multi-temporal Transformer (Garnot et al.) |
 | 4 | No uncertainty quantification | Bayesian extensions + Monte Carlo Dropout |
 | 5 | Above-ground biomass only | Below-ground carbon via pedotransfer functions |
 
@@ -559,12 +470,12 @@ GCP_SERVICE_ACCOUNT = '''
 ### Agha Wafa Abbas
 **ML Scientist · Lecturer · Researcher**
 
-| Institution | Role | Contact |
-|---|---|---|
-| University of Portsmouth, UK | Lecturer | [agha.wafa@port.ac.uk](mailto:agha.wafa@port.ac.uk) |
-| Arden University, UK | Lecturer | [awabbas@arden.ac.uk](mailto:awabbas@arden.ac.uk) |
-| Pearson, UK | Lecturer | — |
-| IVY College of Management Sciences, Lahore, Pakistan | Lecturer | [wafa.abbas.lhr@rootsivy.edu.pk](mailto:wafa.abbas.lhr@rootsivy.edu.pk) |
+| Institution | Contact |
+|---|---|
+| University of Portsmouth, UK | [agha.wafa@port.ac.uk](mailto:agha.wafa@port.ac.uk) |
+| Arden University, UK | [awabbas@arden.ac.uk](mailto:awabbas@arden.ac.uk) |
+| Pearson, UK | — |
+| IVY College of Management Sciences, Lahore, Pakistan | [wafa.abbas.lhr@rootsivy.edu.pk](mailto:wafa.abbas.lhr@rootsivy.edu.pk) |
 
 [![GitHub](https://img.shields.io/badge/GitHub-Aghawafaabbass-181717?style=flat-square&logo=github)](https://github.com/Aghawafaabbass)
 
@@ -580,7 +491,6 @@ GCP_SERVICE_ACCOUNT = '''
              for Global Yield Intelligence and Carbon Sequestration Modeling},
   author  = {Abbas, Agha Wafa},
   year    = {2026},
-  journal = {Preprint},
   url     = {https://github.com/Aghawafaabbass/OmniTerra-Global-M}
 }
 ```
@@ -597,13 +507,11 @@ Copyright © 2026 — Agha Wafa Abbas. All Rights Reserved.
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey.svg?style=for-the-badge)](https://creativecommons.org/licenses/by-nc/4.0/)
 
-This work is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International License**.
+Licensed under **Creative Commons Attribution-NonCommercial 4.0 International**.
+Free to share and adapt for **non-commercial purposes** with attribution.
+**Commercial use strictly prohibited without written permission.**
 
-You are free to **share** and **adapt** this work for **non-commercial purposes**, provided you give appropriate credit.
-
-**Commercial use without prior written permission is strictly prohibited.**
-
-📧 Commercial licensing: [agha.wafa@port.ac.uk](mailto:agha.wafa@port.ac.uk)
+📧 [agha.wafa@port.ac.uk](mailto:agha.wafa@port.ac.uk)
 
 </div>
 
@@ -613,15 +521,11 @@ You are free to **share** and **adapt** this work for **non-commercial purposes*
 
 > **RESEARCH & EDUCATIONAL USE ONLY**
 >
-> OmniTerra is an academic research prototype for demonstration and educational purposes. Yield predictions and carbon estimates are **not intended for operational agricultural decision-making, financial planning, insurance, or policy formulation** without independent validation by qualified agronomists.
+> OmniTerra is an academic research prototype. Yield predictions and carbon estimates are **not intended for operational agricultural decision-making, financial planning, insurance, or policy formulation** without independent validation by qualified agronomists.
 >
-> **Satellite Data:** Prediction accuracy depends on Sentinel-2 availability and cloud cover. GEE server load may affect latency (3–8 seconds typical).
+> Satellite data accuracy depends on Sentinel-2 availability and cloud cover. Predictions in extreme or out-of-distribution conditions should be treated with caution. Carbon estimates are indicative only — not for carbon credit verification or NDC reporting without field-level validation.
 >
-> **Model Scope:** Trained on a limited dataset (2020–21). Predictions in extreme or out-of-distribution conditions should be treated with caution.
->
-> **Carbon Estimates:** Indicative only. Not for carbon credit verification or official NDC reporting without field-level validation.
->
-> **No Warranty:** This software is provided "AS IS" without warranty of any kind. The author and affiliated institutions bear no liability for damages arising from its use.
+> Software provided "AS IS" without warranty. The author and affiliated institutions bear no liability for damages from its use.
 >
 > — *Agha Wafa Abbas, 2026*
 
